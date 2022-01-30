@@ -80,7 +80,6 @@ class HTTPClient(object):
                 if int(response["headers"]["Content-Length"]) == len(response["body"]):
                     # Response has completed body
                     return response
-                print(response["headers"])
             except IncompleteHttpResponseError:
                 continue
 
