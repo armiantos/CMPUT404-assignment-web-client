@@ -77,8 +77,14 @@ class HTTPClient(object):
                 if "Content-Length" not in response["headers"]:
                     # Response has no body
                     return response
-                if int(response["headers"]["Content-Length"]) == len(response["body"]):
+
+                expected_content_length = int(response["headers"]["Content-Length"])
+                received_content_length = len(response["body"])
+                if expected_content_length == received_content_length:
                     # Response has completed body
+                    return response
+                if not chunk:
+                    print(f"Content length mismatch, expected {expected_content_length} received {received_content_length}")
                     return response
             except IncompleteHttpResponseError:
                 continue
@@ -90,15 +96,18 @@ class HTTPClient(object):
 
         host_ip = socket.gethostbyname(parsed_url.hostname)
         port = parsed_url.port or 80
+        path = parsed_url.path
+        if len(parsed_url.query) > 0:
+            path += f"?{parsed_url.query}"
 
         self.connect(host_ip, port)
-        http_request = build_http_request(method="GET", path="?".join([parsed_url.path, parsed_url.query]), host=parsed_url.hostname)
+        http_request = build_http_request(method="GET", path=path, host=parsed_url.hostname)
         self.sendall(http_request)
         http_response = self.get_server_response(self.socket)
         self.close()
 
         code = http_response["status_code"]
-        body = http_response["body"]
+        body = http_response["body"] or ""
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
