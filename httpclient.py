@@ -31,9 +31,17 @@ def help():
     print("httpclient.py [GET/POST] [URL]\n")
 
 class HTTPResponse(object):
-    def __init__(self, code=200, body=""):
+    def __init__(self, code: int=200, body: str=""):
         self.code = code
         self.body = body
+    
+    def __str__(self) -> str:
+        return \
+f"""\
+STATUS:\t{self.code}
+BODY:
+{self.body}\
+"""
 
 class HTTPClient(object):
     #def get_host_port(self,url):
@@ -81,7 +89,7 @@ class HTTPClient(object):
 
         self.connect(host_ip, port)
         
-        request = HTTPRequest(method="GET", host=parsed_url.hostname)
+        request = HTTPRequest(method="GET",path=parsed_url.path, host=parsed_url.hostname)
         self.sendall(request.get_body())
         response = self.recvall(self.socket)
         http_response = parse_http_response(response)
