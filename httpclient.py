@@ -25,7 +25,7 @@ import socket
 import urllib.parse
 
 from http_request_builder import build_http_request
-from response_parser import parse_http_response
+from response_parser import HttpResponse, IncompleteHttpResponseError, parse_http_response
 
 
 def help():
@@ -66,17 +66,23 @@ class HTTPClient(object):
     def close(self):
         self.socket.close()
 
-    # read everything from the socket
-    def recvall(self, sock) -> str:
-        buffer = bytearray()
-        done = False
-        while not done:
-            part = sock.recv(1024)
-            if part:
-                buffer.extend(part)
-            else:
-                done = not part
-        return buffer.decode("utf-8")
+    def get_server_response(self, sock: socket.SocketType) -> HttpResponse:
+        payload = bytearray()
+        while True:
+            chunk = sock.recv(1024)
+            payload.extend(chunk)
+
+            try:
+                response = parse_http_response(payload.decode("utf-8"))
+                if "Content-Length" not in response["headers"]:
+                    # Response has no body
+                    return response
+                if int(response["headers"]["Content-Length"]) == len(response["body"]):
+                    # Response has completed body
+                    return response
+                print(response["headers"])
+            except IncompleteHttpResponseError:
+                continue
 
     def GET(self, url, args=None):
         parsed_url = urllib.parse.urlparse(url)
@@ -89,10 +95,9 @@ class HTTPClient(object):
         self.connect(host_ip, port)
         http_request = build_http_request(method="GET", path="?".join([parsed_url.path, parsed_url.query]), host=parsed_url.hostname)
         self.sendall(http_request)
-        response = self.recvall(self.socket)
+        http_response = self.get_server_response(self.socket)
         self.close()
 
-        http_response = parse_http_response(response)
         code = http_response["status_code"]
         body = http_response["body"]
         return HTTPResponse(code, body)
