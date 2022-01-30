@@ -24,6 +24,9 @@ import re
 # you may use urllib to encode data appropriately
 import urllib.parse
 
+from http_request import HTTPRequest
+from response_parser import parse_http_response
+
 def help():
     print("httpclient.py [GET/POST] [URL]\n")
 
@@ -56,7 +59,7 @@ class HTTPClient(object):
         self.socket.close()
 
     # read everything from the socket
-    def recvall(self, sock):
+    def recvall(self, sock) -> str:
         buffer = bytearray()
         done = False
         while not done:
@@ -68,8 +71,23 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
-        code = 500
-        body = ""
+        parsed_url = urllib.parse.urlparse(url)
+        
+        if parsed_url.scheme != 'http':
+            raise Exception()
+
+        host_ip = socket.gethostbyname(parsed_url.hostname)
+        port = parsed_url.port or 80
+
+        self.connect(host_ip, port)
+        
+        request = HTTPRequest(method="GET", host=parsed_url.hostname)
+        self.sendall(request.get_body())
+        response = self.recvall(self.socket)
+        http_response = parse_http_response(response)
+        
+        code = http_response["status_code"]
+        body = http_response["body"]
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
