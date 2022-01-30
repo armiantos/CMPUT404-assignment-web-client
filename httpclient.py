@@ -92,6 +92,9 @@ class HTTPClient(object):
         request = HTTPRequest(method="GET",path=parsed_url.path, host=parsed_url.hostname)
         self.sendall(request.get_body())
         response = self.recvall(self.socket)
+
+        self.close()
+
         http_response = parse_http_response(response)
         
         code = http_response["status_code"]
