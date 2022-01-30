@@ -87,8 +87,8 @@ class HTTPClient(object):
         port = parsed_url.port or 80
 
         self.connect(host_ip, port)
-        request = build_http_request(method="GET", path="?".join([parsed_url.path, parsed_url.query]), host=parsed_url.hostname)
-        self.sendall(request.get_body())
+        http_request = build_http_request(method="GET", path="?".join([parsed_url.path, parsed_url.query]), host=parsed_url.hostname)
+        self.sendall(http_request)
         response = self.recvall(self.socket)
         self.close()
 
