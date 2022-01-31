@@ -1,4 +1,4 @@
-def build_http_request(method: str, path: str, host: str, extra_headers: list[str] = [], body: str = "") -> str:
+def build_http_request(method: str, path: str, host: str, extra_headers=[], body: str = "") -> str:
     status_line = f"{method} {path} HTTP/1.1"
     headers = [
         f"Host: {host}",
