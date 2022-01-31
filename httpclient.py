@@ -25,7 +25,7 @@ import socket
 import urllib.parse
 
 from http_request_builder import build_http_request
-from response_parser import IncompleteHttpResponseError, parse_http_response
+from http_response_parser import IncompleteHttpResponseError, parse_http_response
 
 
 def help():
