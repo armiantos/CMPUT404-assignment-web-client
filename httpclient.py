@@ -49,7 +49,6 @@ class HTTPClient(object):
     def connect(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
-        return None
 
     def get_code(self, data):
         return None
@@ -108,10 +107,37 @@ class HTTPClient(object):
         body = http_response["body"] or ""
         return HTTPResponse(code, body)
 
-    def POST(self, url, args=None):
-        code = 500
-        body = ""
-        return HTTPResponse(code, body)
+    def POST(self, url: str, args: dict[str, str] = None):
+        parsed_url = urllib.parse.urlparse(url)
+        if parsed_url.scheme != "http":
+            raise Exception()
+
+        host_ip = socket.gethostbyname(parsed_url.hostname)
+        port = parsed_url.port or 80
+        path = parsed_url.path or "/"
+        if len(parsed_url.query) > 0:
+            path += f"?{parsed_url.query}"
+
+        request_body = None
+        if args != None:
+            safe_fields = [f"{key}={urllib.parse.quote_plus(value)}" for key, value in args.items()]
+            request_body = "&".join(safe_fields)
+
+        self.connect(host_ip, port)
+        http_request = build_http_request(
+            method="POST",
+            path=path,
+            host=parsed_url.hostname,
+            extra_headers=["Content-Type: application/x-www-form-urlencoded"],
+            body=request_body,
+        )
+        self.sendall(http_request)
+        http_response = self.get_server_response(self.socket)
+        self.close()
+
+        code = http_response["status_code"]
+        response_body = http_response["body"] or ""
+        return HTTPResponse(code, response_body)
 
     def command(self, url, command="GET", args=None):
         if command == "POST":
