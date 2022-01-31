@@ -118,7 +118,7 @@ class HTTPClient(object):
         if len(parsed_url.query) > 0:
             path += f"?{parsed_url.query}"
 
-        request_body = None
+        request_body = ""
         if args != None:
             safe_fields = [f"{key}={urllib.parse.quote_plus(value)}" for key, value in args.items()]
             request_body = "&".join(safe_fields)
