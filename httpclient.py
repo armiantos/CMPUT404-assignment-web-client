@@ -25,7 +25,7 @@ import socket
 import urllib.parse
 
 from http_request_builder import build_http_request
-from response_parser import HttpResponse, IncompleteHttpResponseError, parse_http_response
+from response_parser import IncompleteHttpResponseError, parse_http_response
 
 
 def help():
@@ -65,7 +65,7 @@ class HTTPClient(object):
     def close(self):
         self.socket.close()
 
-    def get_server_response(self, sock: socket.SocketType) -> HttpResponse:
+    def get_server_response(self, sock: socket.SocketType):
         payload = bytearray()
         while True:
             chunk = sock.recv(1024)
@@ -107,7 +107,7 @@ class HTTPClient(object):
         body = http_response["body"] or ""
         return HTTPResponse(code, body)
 
-    def POST(self, url: str, args: dict[str, str] = None):
+    def POST(self, url: str, args=None):
         parsed_url = urllib.parse.urlparse(url)
         if parsed_url.scheme != "http":
             raise Exception()

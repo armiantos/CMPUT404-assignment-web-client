@@ -2,12 +2,6 @@ import re
 from typing import TypedDict
 
 
-class HttpResponse(TypedDict):
-    status_code: int
-    headers: dict[str, str]
-    body: str or None
-
-
 class IncompleteHttpResponseError(Exception):
     pass
 
@@ -19,7 +13,7 @@ class InvalidHttp11Response(Exception):
 STATUS_LINE_REGEX = re.compile(r"HTTP/\d\.\d (\d{3}) (.+)")
 
 
-def parse_http_response(response: str) -> HttpResponse:
+def parse_http_response(response: str):
     """
     Parses the string decoded HTTP payload and returns a structured response object.
 
