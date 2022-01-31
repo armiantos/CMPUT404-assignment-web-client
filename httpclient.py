@@ -80,12 +80,10 @@ class HTTPClient(object):
 
                 expected_content_length = int(response["headers"]["Content-Length"])
                 received_content_length = len(response["body"])
-                if expected_content_length == received_content_length:
-                    # Response has completed body
-                    return response
-                if not chunk:
-                    # TODO: Add warning to stderr on content length mismatch
-                    return response
+                if received_content_length < expected_content_length:
+                    # Body of response is still incomplete, fetch more
+                    continue
+                return response
             except IncompleteHttpResponseError:
                 continue
 
