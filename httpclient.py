@@ -84,7 +84,7 @@ class HTTPClient(object):
                     # Response has completed body
                     return response
                 if not chunk:
-                    print(f"Content length mismatch, expected {expected_content_length} received {received_content_length}")
+                    # TODO: Add warning to stderr on content length mismatch
                     return response
             except IncompleteHttpResponseError:
                 continue
@@ -96,7 +96,7 @@ class HTTPClient(object):
 
         host_ip = socket.gethostbyname(parsed_url.hostname)
         port = parsed_url.port or 80
-        path = parsed_url.path
+        path = parsed_url.path or "/"
         if len(parsed_url.query) > 0:
             path += f"?{parsed_url.query}"
 
