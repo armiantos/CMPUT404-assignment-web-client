@@ -1,6 +1,4 @@
-def build_http_request(
-    method: str, path: str, host: str, extra_headers: list[str] = [], body: str or None = None
-) -> str:
+def build_http_request(method: str, path: str, host: str, extra_headers: list[str] = [], body: str = "") -> str:
     status_line = f"{method} {path} HTTP/1.1"
     headers = [
         f"Host: {host}",
@@ -9,7 +7,7 @@ def build_http_request(
         headers.extend(extra_headers)
 
     payload = "\r\n"
-    if body != None:
+    if len(body) > 0 or method == "POST":
         payload += body
         headers.append(f"Content-Length: {len(body)}")
 
