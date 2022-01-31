@@ -98,9 +98,7 @@ class HTTPClient(object):
             path += f"?{parsed_url.query}"
 
         self.connect(host_ip, port)
-        http_request = build_http_request(
-            method="GET", path=path, host=parsed_url.hostname, extra_headers=["Connection: close"]
-        )
+        http_request = build_http_request(method="GET", path=path, host=parsed_url.hostname)
         self.sendall(http_request)
         http_response = self.get_server_response(self.socket)
         self.close()
@@ -130,7 +128,7 @@ class HTTPClient(object):
             method="POST",
             path=path,
             host=parsed_url.hostname,
-            extra_headers=["Content-Type: application/x-www-form-urlencoded", "Connection: close"],
+            extra_headers=["Content-Type: application/x-www-form-urlencoded"],
             body=request_body,
         )
         self.sendall(http_request)
