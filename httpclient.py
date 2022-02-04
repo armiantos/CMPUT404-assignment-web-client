@@ -66,26 +66,16 @@ class HTTPClient(object):
     def close(self):
         self.socket.close()
 
-    def get_server_response(self, sock: socket.SocketType):
-        payload = bytearray()
-        while True:
-            chunk = sock.recv(1024)
-            payload.extend(chunk)
-
-            try:
-                response = parse_http_response(payload.decode("utf-8"))
-                if "Content-Length" not in response["headers"]:
-                    # Response has no body
-                    return response
-
-                expected_content_length = int(response["headers"]["Content-Length"])
-                received_content_length = len(response["body"])
-                if received_content_length < expected_content_length:
-                    # Body of response is still incomplete, fetch more
-                    continue
-                return response
-            except IncompleteHttpResponseError:
-                continue
+    def recvall(self, sock: socket.SocketType):
+        buffer = bytearray()
+        done = False
+        while not done:
+            part = sock.recv(1024)
+            if (part):
+                buffer.extend(part)
+            else:
+                done = not part
+        return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
         parsed_url = urllib.parse.urlparse(url)
@@ -101,7 +91,8 @@ class HTTPClient(object):
         self.connect(host_ip, port)
         http_request = build_http_request(method="GET", path=path, host=parsed_url.hostname)
         self.sendall(http_request)
-        http_response = self.get_server_response(self.socket)
+        self.socket.shutdown(socket.SHUT_WR)  # Prevent further sends to server
+        http_response = parse_http_response(self.recvall(self.socket))
         self.close()
 
         code = http_response["status_code"]
@@ -120,7 +111,7 @@ class HTTPClient(object):
             path += f"?{parsed_url.query}"
 
         request_body = ""
-        if args != None:
+        if args is not None:
             safe_fields = [f"{key}={urllib.parse.quote_plus(value)}" for key, value in args.items()]
             request_body = "&".join(safe_fields)
 
@@ -133,7 +124,8 @@ class HTTPClient(object):
             body=request_body,
         )
         self.sendall(http_request)
-        http_response = self.get_server_response(self.socket)
+        self.socket.shutdown(socket.SHUT_WR)  # Prevent further sends to server
+        http_response = parse_http_response(self.recvall(self.socket))
         self.close()
 
         code = http_response["status_code"]

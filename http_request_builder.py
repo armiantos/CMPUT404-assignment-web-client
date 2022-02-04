@@ -2,6 +2,7 @@ def build_http_request(method: str, path: str, host: str, extra_headers=[], body
     status_line = f"{method} {path} HTTP/1.1"
     headers = [
         f"Host: {host}",
+        "Connection: close"
     ]
     if len(extra_headers) > 0:
         headers.extend(extra_headers)
