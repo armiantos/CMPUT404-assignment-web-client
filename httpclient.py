@@ -28,10 +28,12 @@ import re
 import urllib.parse
 
 from http_request_builder import build_http_request
-from http_response_parser import IncompleteHttpResponseError, parse_http_response
 
 
 def help():
+    """
+    Prints the usage of the CLI
+    """
     print("httpclient.py [GET/POST] [URL]\n")
 
 
@@ -39,13 +41,6 @@ class HTTPResponse(object):
     def __init__(self, code: int = 200, body: str = ""):
         self.code = code
         self.body = body
-
-    def __str__(self) -> str:
-        return f"""\
-STATUS:\t{self.code}
-BODY:
-{self.body}\
-"""
 
 
 STATUS_LINE_REGEX = re.compile(r"HTTP/\d\.\d (\d{3}) (.+)")
@@ -57,10 +52,16 @@ class InvalidHTTPResponseError(Exception):
 
 class HTTPClient(object):
     def connect(self, host, port):
+        """
+        Initializes a socket connection to the given server
+        """
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
 
-    def get_code(self, data: str):
+    def get_code(self, data: str) -> int:
+        """
+        Returns the integer status code given a full HTTP response
+        """
         status_line = data.split('\r\n')[0]
         matches = STATUS_LINE_REGEX.match(status_line)
         if matches is None:
@@ -68,6 +69,10 @@ class HTTPClient(object):
         return int(matches.group(1))
 
     def get_headers(self, data: str):
+        """
+        Returns a dictionary of headers (excluding the status line) given a full HTTP response.
+        Header values are of type string.
+        """
         headers = data.split('\r\n\r\n')[0]
         non_status_line_headers = headers[1:]
         formatted_headers = {}
@@ -77,18 +82,30 @@ class HTTPClient(object):
         return formatted_headers
 
     def get_body(self, data):
+        """
+        Returns the body of an HTTP response if there is any, None otherwise.
+        """
         headers_and_body = data.split('\r\n\r\n')
         if len(headers_and_body) < 2:
             return None
         return headers_and_body[1]
 
     def sendall(self, data):
+        """
+        Sends a string or a bytes like object down the socket
+        """
         self.socket.sendall(data.encode("utf-8"))
 
     def close(self):
+        """
+        Closes the socket connetion
+        """
         self.socket.close()
 
     def recvall(self, sock: socket.SocketType):
+        """
+        Returns the server response encoded as a utf-8 string. Blocks if the socket is not closed properly.
+        """
         buffer = bytearray()
         done = False
         while not done:
@@ -100,6 +117,15 @@ class HTTPClient(object):
         return buffer.decode('utf-8')
 
     def GET(self, url, args=None):
+        """
+        Performs an HTTP GET to the given url.
+
+        Params:
+        - `url` - the endpoint to GET from
+
+        Returns:
+        An HTTPResponse object
+        """
         parsed_url = urllib.parse.urlparse(url)
         if parsed_url.scheme != "http":
             raise Exception()
@@ -122,6 +148,16 @@ class HTTPClient(object):
         return HTTPResponse(code, body)
 
     def POST(self, url: str, args=None):
+        """
+        Performs an HTTP POST to the given url.
+
+        Params:
+        - `url` - the endpoint to POST to
+        - `args` - a dictionary mapping keys to string values that will be URL encoded as the POST body
+
+        Returns:
+        An HTTPResponse object
+        """
         parsed_url = urllib.parse.urlparse(url)
         if parsed_url.scheme != "http":
             raise Exception()
@@ -132,6 +168,7 @@ class HTTPClient(object):
         if len(parsed_url.query) > 0:
             path += f"?{parsed_url.query}"
 
+        # Encode form fields
         request_body = ""
         if args is not None:
             safe_fields = [f"{key}={urllib.parse.quote_plus(value)}" for key, value in args.items()]
@@ -155,6 +192,9 @@ class HTTPClient(object):
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
+        """
+        Processes a GET/POST command
+        """
         if command == "POST":
             return self.POST(url, args)
         else:
