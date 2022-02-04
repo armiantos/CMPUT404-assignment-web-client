@@ -19,8 +19,10 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
+from email import header
 import sys
 import socket
+import re
 
 # you may use urllib to encode data appropriately
 import urllib.parse
@@ -46,19 +48,39 @@ BODY:
 """
 
 
+STATUS_LINE_REGEX = re.compile(r"HTTP/\d\.\d (\d{3}) (.+)")
+
+
+class InvalidHTTPResponseError(Exception):
+    pass
+
+
 class HTTPClient(object):
     def connect(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((host, port))
 
-    def get_code(self, data):
-        return None
+    def get_code(self, data: str):
+        status_line = data.split('\r\n')[0]
+        matches = STATUS_LINE_REGEX.match(status_line)
+        if matches is None:
+            raise InvalidHTTPResponseError
+        return int(matches.group(1))
 
-    def get_headers(self, data):
-        return None
+    def get_headers(self, data: str):
+        headers = data.split('\r\n\r\n')[0]
+        non_status_line_headers = headers[1:]
+        formatted_headers = {}
+        for header in non_status_line_headers:
+            key, value = header.split(": ")
+            formatted_headers[key] = value
+        return formatted_headers
 
     def get_body(self, data):
-        return None
+        headers_and_body = data.split('\r\n\r\n')
+        if len(headers_and_body) < 2:
+            return None
+        return headers_and_body[1]
 
     def sendall(self, data):
         self.socket.sendall(data.encode("utf-8"))
@@ -92,11 +114,11 @@ class HTTPClient(object):
         http_request = build_http_request(method="GET", path=path, host=parsed_url.hostname)
         self.sendall(http_request)
         self.socket.shutdown(socket.SHUT_WR)  # Prevent further sends to server
-        http_response = parse_http_response(self.recvall(self.socket))
+        http_response = self.recvall(self.socket)
         self.close()
 
-        code = http_response["status_code"]
-        body = http_response["body"] or ""
+        code = self.get_code(http_response)
+        body = self.get_body(http_response)
         return HTTPResponse(code, body)
 
     def POST(self, url: str, args=None):
@@ -125,12 +147,12 @@ class HTTPClient(object):
         )
         self.sendall(http_request)
         self.socket.shutdown(socket.SHUT_WR)  # Prevent further sends to server
-        http_response = parse_http_response(self.recvall(self.socket))
+        http_response = self.recvall(self.socket)
         self.close()
 
-        code = http_response["status_code"]
-        response_body = http_response["body"] or ""
-        return HTTPResponse(code, response_body)
+        code = self.get_code(http_response)
+        body = self.get_body(http_response)
+        return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
         if command == "POST":
