@@ -171,7 +171,9 @@ class HTTPClient(object):
         # Encode form fields
         request_body = ""
         if args is not None:
-            safe_fields = [f"{key}={urllib.parse.quote_plus(value)}" for key, value in args.items()]
+            safe_fields = [
+                f"{urllib.parse.quote_plus(key)}={urllib.parse.quote_plus(value)}" for key,
+                value in args.items()]
             request_body = "&".join(safe_fields)
 
         self.connect(host_ip, port)
