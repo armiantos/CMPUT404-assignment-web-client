@@ -19,10 +19,10 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
-from email import header
 import sys
 import socket
 import re
+from typing import Dict
 
 # you may use urllib to encode data appropriately
 import urllib.parse
@@ -116,6 +116,15 @@ class HTTPClient(object):
                 done = not part
         return buffer.decode('utf-8')
 
+    def args_to_str(self, args: Dict[str, str]) -> str:
+        """
+        Returns the safely URI encoded key value pairs, joined by &
+        """
+        safe_fields = [
+            f"{urllib.parse.quote_plus(key)}={urllib.parse.quote_plus(value)}" for key,
+            value in args.items()]
+        return "&".join(safe_fields)
+
     def GET(self, url, args=None):
         """
         Performs an HTTP GET to the given url.
@@ -135,6 +144,10 @@ class HTTPClient(object):
         path = parsed_url.path or "/"
         if len(parsed_url.query) > 0:
             path += f"?{parsed_url.query}"
+        if args is not None:
+            if '?' not in path:
+                path += '?'
+            path += self.args_to_str(args)
 
         self.connect(host_ip, port)
         http_request = build_http_request(method="GET", path=path, host=parsed_url.hostname)
@@ -171,10 +184,7 @@ class HTTPClient(object):
         # Encode form fields
         request_body = ""
         if args is not None:
-            safe_fields = [
-                f"{urllib.parse.quote_plus(key)}={urllib.parse.quote_plus(value)}" for key,
-                value in args.items()]
-            request_body = "&".join(safe_fields)
+            request_body = self.args_to_str(args)
 
         self.connect(host_ip, port)
         http_request = build_http_request(
@@ -193,7 +203,7 @@ class HTTPClient(object):
         body = self.get_body(http_response)
         return HTTPResponse(code, body)
 
-    def command(self, url, command="GET", args=None):
+    def command(self, url: str, command="GET", args=None):
         """
         Processes a GET/POST command
         """
